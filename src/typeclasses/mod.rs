@@ -1,3 +1,4 @@
+mod apply;
 mod functor;
 mod monoid;
 mod semigroup;
