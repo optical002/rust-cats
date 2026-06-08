@@ -1,6 +1,7 @@
 mod applicative;
 mod applicative_error;
 mod apply;
+mod defer;
 mod flat_map;
 mod functor;
 mod invariant;
@@ -12,6 +13,7 @@ mod semigroup;
 pub use applicative::Applicative;
 pub use applicative_error::ApplicativeError;
 pub use apply::Apply;
+pub use defer::Defer;
 pub use flat_map::FlatMap;
 pub use functor::Functor;
 pub use invariant::Invariant;

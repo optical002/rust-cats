@@ -1,0 +1,60 @@
+Prime Sieve Benchmark Results
+==============================
+
+Workload: count primes in [0, 1_000_000) across 100 concurrent fibers.
+Each fiber processes a 10_000-number chunk and reports the count.
+Expected result: 78498 primes.
+
+Hardware: Linux 6.12.49 x86_64, 24 CPU cores
+Build:    cargo build --release
+
+
+=== Single-threaded scheduler (pre-work-stealing) ===
+
+Run 1: Found 78498 primes in 91ms across 100 fibers
+Run 2: Found 78498 primes in 92ms across 100 fibers
+Run 3: Found 78498 primes in 91ms across 100 fibers
+Average: ~91ms
+
+This was the original cooperative single-threaded scheduler. All "fibers"
+executed serially on the main thread; ~91ms = total CPU time for the prime
+checks on one core plus per-fiber queue overhead.
+
+
+=== Multi-threaded work-stealing scheduler (current) ===
+
+rust-cats-effect:
+Run 1: Found 78498 primes in 8ms (inner) / 9ms (wall) across 100 fibers, 24 workers
+Run 2: Found 78498 primes in 8ms (inner) / 9ms (wall) across 100 fibers, 24 workers
+Run 3: Found 78498 primes in 8ms (inner) / 9ms (wall) across 100 fibers, 24 workers
+Average: ~8ms
+
+tokio (multi-threaded work-stealing):
+Run 1: Found 78498 primes in 8ms across 100 fibers
+Run 2: Found 78498 primes in 8ms across 100 fibers
+Run 3: Found 78498 primes in 8ms across 100 fibers
+Average: ~8ms
+
+
+Summary
+-------
+- The new work-stealing scheduler delivers a ~11x speedup over the original
+  single-threaded one (91ms -> 8ms) on this 24-core machine.
+- On this CPU-bound workload, rust-cats-effect is now at parity with tokio.
+- Theoretical parallel lower bound is ~91ms / 24 ≈ 3.8ms; both schedulers
+  land around 8ms, with the remaining gap covering spawn, join, and steal
+  overhead.
+
+Implementation notes
+--------------------
+- Worker threads: num_cpus::get() (24 here), or RUST_CATS_WORKERS env var.
+- Each worker has its own crossbeam-deque FIFO Worker queue plus access to
+  the global Injector.
+- find_task strategy: local pop -> injector steal -> sibling stealers.
+- Parking: each worker has a Mutex<bool> + Condvar. enqueue() pushes to the
+  injector and wakes one idle worker.
+- block_until: the fiber-join / Deferred::get path parks the calling thread
+  on its own Condvar; the completion callback signals it. Other workers
+  continue draining tasks.
+- Timers: dedicated timer thread with a Mutex<Vec<TimerEntry>>; expired
+  timers are pushed to the injector.
