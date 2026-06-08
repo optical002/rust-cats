@@ -1,20 +1,9 @@
-pub trait Apply<A>: Functor<A> {
-    fn ap<B, F: Fn(&A) -> B>(self, ff: Self::Target<F>) -> Self::Target<B>;
-}
+use crate::core::HKT;
+use crate::typeclasses::Functor;
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    impl<A> Apply<A> for Option<A> {
-        fn ap<B, F: Fn(&A) -> B>(self, ff: Option<F>) -> Self::Target<B> {
-            match (self, ff) {
-                (Some(a), Some(f)) => Some(f(&a)),
-                _ => None,
-            }
-        }
-    }
-
-    #[test]
-    fn test_apply() {}
+pub trait Apply<F: HKT>: Functor<F> {
+    fn ap<A, B, Func: Fn(&A) -> B>(
+        fa: F::Applied<A>,
+        ff: F::Applied<Func>,
+    ) -> F::Applied<B>;
 }

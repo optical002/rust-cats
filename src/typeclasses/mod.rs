@@ -1,8 +1,21 @@
+mod applicative;
+mod applicative_error;
 mod apply;
+mod flat_map;
 mod functor;
+mod invariant;
+mod monad;
+mod monad_error;
 mod monoid;
 mod semigroup;
 
+pub use applicative::Applicative;
+pub use applicative_error::ApplicativeError;
+pub use apply::Apply;
+pub use flat_map::FlatMap;
 pub use functor::Functor;
+pub use invariant::Invariant;
+pub use monad::Monad;
+pub use monad_error::MonadError;
 pub use monoid::Monoid;
 pub use semigroup::Semigroup;
